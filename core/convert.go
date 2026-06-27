@@ -27,10 +27,12 @@ func BuildFfmpegArgs(input, output string, p Preset) []string {
 	if p.VideoCodec != "" && p.VideoCodec != "copy" {
 		enc := EncoderName(p.HWAccel, p.VideoCodec)
 		args = append(args, "-c:v", enc)
-		if p.Preset != "" {
+		if p.HWAccel == "" && p.Preset != "" {
 			args = append(args, "-preset", p.Preset)
 		}
-		args = append(args, "-crf", strconv.Itoa(p.Quality))
+		if p.HWAccel == "" {
+			args = append(args, "-crf", strconv.Itoa(p.Quality))
+		}
 	} else if p.VideoCodec == "copy" {
 		args = append(args, "-c:v", "copy")
 	}

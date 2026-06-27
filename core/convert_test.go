@@ -21,6 +21,25 @@ func TestBuildFfmpegArgs(t *testing.T) {
 	}
 }
 
+func TestBuildFfmpegArgsHWAccel(t *testing.T) {
+	p := Preset{
+		Container: "mp4", VideoCodec: "h264", AudioCodec: "aac",
+		Quality: 23, Preset: "medium", Resolution: "1920x1080",
+		HWAccel: "nvenc",
+	}
+	args := BuildFfmpegArgs("in.mp4", "out.mp4", p)
+	// HWAccel should skip -preset and -crf
+	expected := []string{"-i", "in.mp4", "-c:v", "h264_nvenc", "-c:a", "aac", "-vf", "scale=1920:1080", "out.mp4"}
+	if len(args) != len(expected) {
+		t.Fatalf("expected %d args, got %d: %v", len(expected), len(args), args)
+	}
+	for i := range expected {
+		if args[i] != expected[i] {
+			t.Fatalf("arg %d: expected %q, got %q", i, expected[i], args[i])
+		}
+	}
+}
+
 func TestBuildFfmpegArgsCopy(t *testing.T) {
 	p := Preset{
 		Container: "mkv", VideoCodec: "copy", AudioCodec: "copy",
