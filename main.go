@@ -18,6 +18,7 @@ func main() {
 		outputDir   = flag.String("output", "./output", "output directory")
 		ffmpegPath  = flag.String("ffmpeg-path", "", "ffmpeg binary path")
 		hwaccel     = flag.String("hwaccel", "", "GPU backend: nvenc, qsv, amd, videotoolbox")
+		keepFormat  = flag.Bool("keep-format", false, "keep original file extension")
 		queueMode   = flag.Bool("queue", false, "process queue JSON from stdin")
 		showVersion = flag.Bool("version", false, "print version")
 		concurrent  = flag.Int("concurrent", 2, "concurrent encode jobs")
@@ -36,14 +37,14 @@ func main() {
 
 	args := flag.Args()
 	if len(args) > 0 {
-		runCLI(args, *presetName, *outputDir, *ffmpegPath, *hwaccel)
+		runCLI(args, *presetName, *outputDir, *ffmpegPath, *hwaccel, *keepFormat)
 		return
 	}
 
 	runGUI(*ffmpegPath, *concurrent)
 }
 
-func runCLI(inputs []string, presetName, outputDir, ffmpegPath, hwaccel string) {
+func runCLI(inputs []string, presetName, outputDir, ffmpegPath, hwaccel string, keepFormat bool) {
 	presets := core.DefaultPresets()
 	var preset *core.Preset
 	for i, p := range presets {
@@ -73,6 +74,9 @@ func runCLI(inputs []string, presetName, outputDir, ffmpegPath, hwaccel string) 
 	runner := core.NewRunner(ffmpeg)
 	for _, input := range inputs {
 		ext := "." + preset.Container
+		if keepFormat {
+			ext = filepath.Ext(input)
+		}
 		out := strings.TrimSuffix(input, filepath.Ext(input)) + ext
 		if outputDir != "" {
 			out = filepath.Join(outputDir, filepath.Base(out))
