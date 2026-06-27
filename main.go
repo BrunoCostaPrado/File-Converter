@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"file_converter/core"
+	"file_converter/gui"
 )
 
 func main() {
@@ -95,5 +96,5 @@ func processQueue(ffmpegPath string, concurrent int) {
 }
 
 func runGUI(ffmpegPath string, concurrent int) {
-	fmt.Println("GUI mode (requires Fyne — Task 10)")
+	gui.New(ffmpegPath, concurrent).Run()
 }
