@@ -16,15 +16,13 @@ type App struct {
 	source     *SourcePanel
 	preset     *PresetPanel
 	queue      *QueuePanel
-	ffmpegPath string
-	concurrent int
+	settings   *core.Settings
 	pool       *core.WorkerPool
 }
 
-func New(ffmpegPath string, concurrent int) *App {
+func New(settings *core.Settings) *App {
 	a := &App{
-		ffmpegPath: ffmpegPath,
-		concurrent: concurrent,
+		settings: settings,
 	}
 	a.App = app.New()
 	a.window = a.App.NewWindow("File Converter")
@@ -45,6 +43,16 @@ func (a *App) Run() {
 	a.queue = NewQueuePanel(a.startQueue, a.stopQueue)
 	a.queue.SetItems([]core.QueueItem{})
 
+	settingsItem := fyne.NewMenuItem("Settings", func() {
+		ShowSettingsDialog(a.window, a.settings, func(s *core.Settings) {
+			*a.settings = *s
+			s.Save(core.SettingsPath())
+		})
+	})
+	helpMenu := fyne.NewMenu("File", settingsItem)
+	menu := fyne.NewMainMenu(helpMenu)
+	a.window.SetMainMenu(menu)
+
 	left := a.source.Container()
 	right := container.NewVSplit(
 		a.preset.Container(),
@@ -58,7 +66,7 @@ func (a *App) Run() {
 }
 
 func (a *App) startQueue() {
-	ffmpeg := core.FindFfmpeg(core.FfmpegPaths("ffmpeg"), a.ffmpegPath)
+	ffmpeg := core.FindFfmpeg(core.FfmpegPaths("ffmpeg"), a.settings.FfmpegPath)
 	if ffmpeg == "" {
 		dialog.ShowError(fmt.Errorf("ffmpeg not found. Install ffmpeg or set path in settings"), a.window)
 		return
@@ -76,7 +84,7 @@ func (a *App) startQueue() {
 	q.Add(items...)
 
 	runner := core.NewRunner(ffmpeg)
-	a.pool = core.NewWorkerPool(runner, q, a.concurrent)
+	a.pool = core.NewWorkerPool(runner, q, a.settings.ConcurrentJobs)
 	a.pool.OnProgress = func(p core.Progress) {
 		a.queue.UpdateProgress(p.File, p.Percent, p.Status)
 	}

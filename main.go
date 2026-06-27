@@ -96,5 +96,13 @@ func processQueue(ffmpegPath string, concurrent int) {
 }
 
 func runGUI(ffmpegPath string, concurrent int) {
-	gui.New(ffmpegPath, concurrent).Run()
+	settingsPath := core.SettingsPath()
+	settings, _ := core.LoadSettings(settingsPath)
+	if ffmpegPath != "" {
+		settings.FfmpegPath = ffmpegPath
+	}
+	if concurrent > 0 {
+		settings.ConcurrentJobs = concurrent
+	}
+	gui.New(settings).Run()
 }
