@@ -48,7 +48,7 @@ func NewQueuePanel(onStart, onStop func()) *QueuePanel {
 
 func (p *QueuePanel) SetItems(items []core.QueueItem) {
 	p.items = items
-	p.list.Refresh()
+	fyne.Do(p.list.Refresh)
 }
 
 func (p *QueuePanel) GetItems() []core.QueueItem {
@@ -65,7 +65,7 @@ func (p *QueuePanel) UpdateProgress(file string, percent float64, status string)
 			break
 		}
 	}
-	p.list.Refresh()
+	fyne.Do(p.list.Refresh)
 }
 
 func (p *QueuePanel) Container() fyne.CanvasObject {

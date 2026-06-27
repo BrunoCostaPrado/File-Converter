@@ -26,7 +26,7 @@ func New(settings *core.Settings) *App {
 	a := &App{
 		settings: settings,
 	}
-	a.App = app.New()
+	a.App = app.NewWithID("file_converter")
 	a.window = a.App.NewWindow("File Converter")
 	a.window.Resize(fyne.NewSize(900, 600))
 	return a
