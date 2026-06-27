@@ -1,9 +1,12 @@
 package gui
 
 import (
+	"fmt"
+
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/dialog"
 	"file_converter/core"
 )
 
@@ -54,9 +57,30 @@ func (a *App) Run() {
 }
 
 func (a *App) startQueue() {
-	// Will be wired in Task 14
+	ffmpeg := core.FindFfmpeg(core.FfmpegPaths("ffmpeg"), a.ffmpegPath)
+	if ffmpeg == "" {
+		dialog.ShowError(fmt.Errorf("ffmpeg not found. Install ffmpeg or set path in settings"), a.window)
+		return
+	}
+
+	items := a.queue.GetItems()
+	if len(items) == 0 {
+		return
+	}
+	q := core.NewQueue()
+	for i := range items {
+		items[i].PresetName = a.preset.CurrentPreset().Name
+		items[i].Status = "pending"
+	}
+	q.Add(items...)
+
+	runner := core.NewRunner(ffmpeg)
+	pool := core.NewWorkerPool(runner, q, a.concurrent)
+	pool.OnProgress = func(p core.Progress) {
+		a.queue.UpdateProgress(p.File, p.Percent, p.Status)
+	}
+	go pool.Start()
 }
 
 func (a *App) stopQueue() {
-	// Will be wired in Task 14
 }

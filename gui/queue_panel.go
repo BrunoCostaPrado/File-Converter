@@ -3,6 +3,7 @@ package gui
 import (
 	"fmt"
 	"path/filepath"
+	"sync"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
@@ -11,6 +12,7 @@ import (
 )
 
 type QueuePanel struct {
+	mu      sync.Mutex
 	items   []core.QueueItem
 	list    *widget.List
 	onStart func()
@@ -46,6 +48,23 @@ func NewQueuePanel(onStart, onStop func()) *QueuePanel {
 
 func (p *QueuePanel) SetItems(items []core.QueueItem) {
 	p.items = items
+	p.list.Refresh()
+}
+
+func (p *QueuePanel) GetItems() []core.QueueItem {
+	return p.items
+}
+
+func (p *QueuePanel) UpdateProgress(file string, percent float64, status string) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	for i := range p.items {
+		if p.items[i].InputPath == file {
+			p.items[i].Progress = percent
+			p.items[i].Status = status
+			break
+		}
+	}
 	p.list.Refresh()
 }
 
