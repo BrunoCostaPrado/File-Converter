@@ -65,6 +65,7 @@ func runCLI(inputs []string, presetName, outputDir, ffmpegPath string) {
 		os.MkdirAll(outputDir, 0755)
 	}
 
+	runner := core.NewRunner(ffmpeg)
 	for _, input := range inputs {
 		ext := "." + preset.Container
 		out := strings.TrimSuffix(input, filepath.Ext(input)) + ext
@@ -72,9 +73,16 @@ func runCLI(inputs []string, presetName, outputDir, ffmpegPath string) {
 			out = filepath.Join(outputDir, filepath.Base(out))
 		}
 		fmt.Printf("Converting: %s → %s\n", input, out)
-	}
 
-	fmt.Println("CLI mode ready — runner will be wired in Task 9")
+		err := runner.Run(input, out, *preset, func(p core.Progress) {
+			fmt.Printf("\r  %s: %.0f%%", filepath.Base(input), p.Percent)
+		})
+		if err != nil {
+			fmt.Printf("\n  error: %v\n", err)
+		} else {
+			fmt.Printf("\n  done: %s\n", out)
+		}
+	}
 }
 
 func processQueue(ffmpegPath string, concurrent int) {
