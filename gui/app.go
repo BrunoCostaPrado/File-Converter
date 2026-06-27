@@ -2,6 +2,8 @@ package gui
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
@@ -31,6 +33,7 @@ func New(settings *core.Settings) *App {
 }
 
 func (a *App) Run() {
+	queuePath := filepath.Join(filepath.Dir(core.SettingsPath()), "queue.json")
 	a.source = NewSourcePanel(a.window, func(items []core.QueueItem) {
 		queueItems := make([]core.QueueItem, len(items))
 		copy(queueItems, items)
@@ -38,10 +41,23 @@ func (a *App) Run() {
 			queueItems[i].PresetName = a.preset.CurrentPreset().Name
 		}
 		a.queue.SetItems(queueItems)
+		q := core.NewQueue()
+		q.Add(queueItems...)
+		os.MkdirAll(filepath.Dir(queuePath), 0755)
+		q.Save(queuePath)
 	})
 	a.preset = NewPresetPanel()
 	a.queue = NewQueuePanel(a.startQueue, a.stopQueue)
 	a.queue.SetItems([]core.QueueItem{})
+
+	if q, err := core.LoadQueue(queuePath); err == nil && len(q.Items) > 0 {
+		for i := range q.Items {
+			if q.Items[i].Status == "running" {
+				q.Items[i].Status = "pending"
+			}
+		}
+		a.queue.SetItems(q.Items)
+	}
 
 	settingsItem := fyne.NewMenuItem("Settings", func() {
 		ShowSettingsDialog(a.window, a.settings, func(s *core.Settings) {
