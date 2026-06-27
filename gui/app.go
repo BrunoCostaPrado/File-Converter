@@ -4,12 +4,15 @@ import (
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/container"
-	"fyne.io/fyne/v2/widget"
+	"file_converter/core"
 )
 
 type App struct {
 	fyne.App
 	window     fyne.Window
+	source     *SourcePanel
+	preset     *PresetPanel
+	queue      *QueuePanel
 	ffmpegPath string
 	concurrent int
 }
@@ -26,13 +29,34 @@ func New(ffmpegPath string, concurrent int) *App {
 }
 
 func (a *App) Run() {
-	label := widget.NewLabel("File Converter v0.1")
-	content := container.NewBorder(
-		widget.NewLabel("File Converter"),
-		widget.NewLabel("Ready"),
-		nil, nil,
-		container.NewCenter(label),
+	a.source = NewSourcePanel(a.window, func(items []core.QueueItem) {
+		queueItems := make([]core.QueueItem, len(items))
+		copy(queueItems, items)
+		for i := range queueItems {
+			queueItems[i].PresetName = a.preset.CurrentPreset().Name
+		}
+		a.queue.SetItems(queueItems)
+	})
+	a.preset = NewPresetPanel()
+	a.queue = NewQueuePanel(a.startQueue, a.stopQueue)
+	a.queue.SetItems([]core.QueueItem{})
+
+	left := a.source.Container()
+	right := container.NewVSplit(
+		a.preset.Container(),
+		a.queue.Container(),
 	)
-	a.window.SetContent(content)
+	split := container.NewHSplit(left, right)
+	split.SetOffset(0.4)
+
+	a.window.SetContent(split)
 	a.window.ShowAndRun()
+}
+
+func (a *App) startQueue() {
+	// Will be wired in Task 14
+}
+
+func (a *App) stopQueue() {
+	// Will be wired in Task 14
 }
