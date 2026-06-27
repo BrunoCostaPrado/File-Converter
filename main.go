@@ -17,6 +17,7 @@ func main() {
 		presetName  = flag.String("preset", "Fast 1080p", "preset name")
 		outputDir   = flag.String("output", "./output", "output directory")
 		ffmpegPath  = flag.String("ffmpeg-path", "", "ffmpeg binary path")
+		hwaccel     = flag.String("hwaccel", "", "GPU backend: nvenc, qsv, amd, videotoolbox")
 		queueMode   = flag.Bool("queue", false, "process queue JSON from stdin")
 		showVersion = flag.Bool("version", false, "print version")
 		concurrent  = flag.Int("concurrent", 2, "concurrent encode jobs")
@@ -35,14 +36,14 @@ func main() {
 
 	args := flag.Args()
 	if len(args) > 0 {
-		runCLI(args, *presetName, *outputDir, *ffmpegPath)
+		runCLI(args, *presetName, *outputDir, *ffmpegPath, *hwaccel)
 		return
 	}
 
 	runGUI(*ffmpegPath, *concurrent)
 }
 
-func runCLI(inputs []string, presetName, outputDir, ffmpegPath string) {
+func runCLI(inputs []string, presetName, outputDir, ffmpegPath, hwaccel string) {
 	presets := core.DefaultPresets()
 	var preset *core.Preset
 	for i, p := range presets {
@@ -54,6 +55,9 @@ func runCLI(inputs []string, presetName, outputDir, ffmpegPath string) {
 	if preset == nil {
 		fmt.Fprintf(os.Stderr, "preset %q not found. Available: %v\n", presetName, strings.Join(core.DefaultPresetNames(), ", "))
 		os.Exit(1)
+	}
+	if hwaccel != "" {
+		preset.HWAccel = hwaccel
 	}
 
 	ffmpeg := core.FindFfmpeg(core.FfmpegPaths("ffmpeg"), ffmpegPath)
