@@ -1,5 +1,11 @@
 .superpowers/
+.understand-anything
+docs
 file_converter.exe
 file_converter
+test_out
+output
 *.exe
 *.test
+*.mp4
+*.mkv
