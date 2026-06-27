@@ -52,7 +52,7 @@ func runCLI(inputs []string, presetName, outputDir, ffmpegPath string) {
 		}
 	}
 	if preset == nil {
-		fmt.Fprintf(os.Stderr, "preset %q not found\n", presetName)
+		fmt.Fprintf(os.Stderr, "preset %q not found. Available: %v\n", presetName, strings.Join(core.DefaultPresetNames(), ", "))
 		os.Exit(1)
 	}
 
