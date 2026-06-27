@@ -82,11 +82,17 @@ func runCLI(inputs []string, presetName, outputDir, ffmpegPath, hwaccel, bitrate
 		if outputDir != "" {
 			out = filepath.Join(outputDir, filepath.Base(out))
 		}
-		fmt.Printf("Converting: %s → %s\n", input, out)
+		usedBitrate := bitrate
+		if usedBitrate == "" && preset.HWAccel != "" {
+			if b := core.ProbeVideoBitrate(ffmpeg, input); b != "" {
+				usedBitrate = b
+			}
+		}
+		fmt.Printf("Converting: %s → %s (bitrate: %s)\n", input, out, usedBitrate)
 
 		err := runner.Run(input, out, *preset, func(p core.Progress) {
 			fmt.Printf("\r  %s: %.0f%%", filepath.Base(input), p.Percent)
-		}, bitrate)
+		}, usedBitrate)
 		if err != nil {
 			fmt.Printf("\n  error: %v\n", err)
 		} else {

@@ -5,6 +5,8 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strconv"
+	"strings"
 )
 
 func FfmpegPaths(bundledDir string) []string {
@@ -35,4 +37,45 @@ func FindFfmpeg(bundleDirs []string, userPath string) string {
 		return p
 	}
 	return ""
+}
+
+func ProbeVideoBitrate(ffmpegPath, input string) string {
+	// Derive ffprobe path from ffmpeg path
+	dir := filepath.Dir(ffmpegPath)
+	base := strings.TrimSuffix(filepath.Base(ffmpegPath), filepath.Ext(ffmpegPath))
+	probe := filepath.Join(dir, base+"probe")
+	if _, err := os.Stat(probe); err != nil {
+		probe = filepath.Join(dir, base+"probe.exe")
+		if _, err := os.Stat(probe); err != nil {
+			// Fallback to PATH
+			if p, err := exec.LookPath("ffprobe"); err != nil {
+				return ""
+			} else {
+				probe = p
+			}
+		}
+	}
+
+	out, err := exec.Command(probe, "-v", "error", "-select_streams", "v:0",
+		"-show_entries", "stream=bit_rate",
+		"-of", "default=noprint_wrappers=1:nokey=1", input).Output()
+	if err != nil {
+		return ""
+	}
+
+	bitrateStr := strings.TrimSpace(string(out))
+	if bitrateStr == "" || bitrateStr == "N/A" {
+		return ""
+	}
+
+	bits, err := strconv.Atoi(bitrateStr)
+	if err != nil || bits <= 0 {
+		return ""
+	}
+
+	// Convert to k suffix for precision (avoid integer-truncated M)
+	if bits >= 1_000 {
+		return strconv.Itoa(bits/1_000) + "k"
+	}
+	return strconv.Itoa(bits)
 }
