@@ -18,6 +18,7 @@ func main() {
 		outputDir   = flag.String("output", "./output", "output directory")
 		ffmpegPath  = flag.String("ffmpeg-path", "", "ffmpeg binary path")
 		hwaccel     = flag.String("hwaccel", "", "GPU backend: nvenc, qsv, amd, videotoolbox")
+		bitrate     = flag.String("bitrate", "", "video bitrate (e.g. 2M, 1000k)")
 		keepFormat  = flag.Bool("keep-format", false, "keep original file extension")
 		queueMode   = flag.Bool("queue", false, "process queue JSON from stdin")
 		showVersion = flag.Bool("version", false, "print version")
@@ -37,14 +38,14 @@ func main() {
 
 	args := flag.Args()
 	if len(args) > 0 {
-		runCLI(args, *presetName, *outputDir, *ffmpegPath, *hwaccel, *keepFormat)
+		runCLI(args, *presetName, *outputDir, *ffmpegPath, *hwaccel, *bitrate, *keepFormat)
 		return
 	}
 
 	runGUI(*ffmpegPath, *concurrent)
 }
 
-func runCLI(inputs []string, presetName, outputDir, ffmpegPath, hwaccel string, keepFormat bool) {
+func runCLI(inputs []string, presetName, outputDir, ffmpegPath, hwaccel, bitrate string, keepFormat bool) {
 	presets := core.DefaultPresets()
 	var preset *core.Preset
 	for i, p := range presets {
@@ -85,7 +86,7 @@ func runCLI(inputs []string, presetName, outputDir, ffmpegPath, hwaccel string, 
 
 		err := runner.Run(input, out, *preset, func(p core.Progress) {
 			fmt.Printf("\r  %s: %.0f%%", filepath.Base(input), p.Percent)
-		})
+		}, bitrate)
 		if err != nil {
 			fmt.Printf("\n  error: %v\n", err)
 		} else {

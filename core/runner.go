@@ -17,7 +17,7 @@ func NewRunner(ffmpegPath string) *Runner {
 	return &Runner{ffmpegPath: ffmpegPath}
 }
 
-func (r *Runner) Run(input, output string, preset Preset, onProgress func(Progress)) error {
+func (r *Runner) Run(input, output string, preset Preset, onProgress func(Progress), bitrate ...string) error {
 	// Sanitize input: "test" as sole filename meant file named "-", not stdin
 	inputPath := input
 	if inputPath == "-" {
@@ -29,7 +29,11 @@ func (r *Runner) Run(input, output string, preset Preset, onProgress func(Progre
 		return fmt.Errorf("input file not found: %s", input)
 	}
 
-	args := BuildFfmpegArgs(inputPath, output, preset)
+	bv := ""
+	if len(bitrate) > 0 {
+		bv = bitrate[0]
+	}
+	args := BuildFfmpegArgs(inputPath, output, preset, bv)
 	cmd := exec.Command(r.ffmpegPath, args...)
 
 	stderr, err := cmd.StderrPipe()

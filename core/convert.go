@@ -21,7 +21,7 @@ var hwEncoders = map[string]map[string]string{
 	"videotoolbox": {"h264": "h264_videotoolbox", "h265": "hevc_videotoolbox"},
 }
 
-func BuildFfmpegArgs(input, output string, p Preset) []string {
+func BuildFfmpegArgs(input, output string, p Preset, bitrate string) []string {
 	args := []string{"-i", input}
 
 	if p.VideoCodec != "" && p.VideoCodec != "copy" {
@@ -30,7 +30,9 @@ func BuildFfmpegArgs(input, output string, p Preset) []string {
 		if p.HWAccel == "" && p.Preset != "" {
 			args = append(args, "-preset", p.Preset)
 		}
-		if p.HWAccel == "" {
+		if bitrate != "" {
+			args = append(args, "-b:v", bitrate)
+		} else if p.HWAccel == "" {
 			args = append(args, "-crf", strconv.Itoa(p.Quality))
 		}
 	} else if p.VideoCodec == "copy" {
