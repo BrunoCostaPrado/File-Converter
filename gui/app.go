@@ -18,6 +18,7 @@ type App struct {
 	queue      *QueuePanel
 	ffmpegPath string
 	concurrent int
+	pool       *core.WorkerPool
 }
 
 func New(ffmpegPath string, concurrent int) *App {
@@ -75,12 +76,16 @@ func (a *App) startQueue() {
 	q.Add(items...)
 
 	runner := core.NewRunner(ffmpeg)
-	pool := core.NewWorkerPool(runner, q, a.concurrent)
-	pool.OnProgress = func(p core.Progress) {
+	a.pool = core.NewWorkerPool(runner, q, a.concurrent)
+	a.pool.OnProgress = func(p core.Progress) {
 		a.queue.UpdateProgress(p.File, p.Percent, p.Status)
 	}
-	go pool.Start()
+	go a.pool.Start()
 }
 
 func (a *App) stopQueue() {
+	if a.pool != nil {
+		a.pool.Stop()
+		a.pool = nil
+	}
 }
