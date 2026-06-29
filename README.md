@@ -1,36 +1,34 @@
 # File Converter
 
-Video/audio converter built with Go + Fyne, powered by ffmpeg. CLI + GUI. Like Handbrake, lighter.
+Video/audio converter built with Rust, powered by ffmpeg. CLI + GUI. Like Handbrake, lighter.
 
 ## Features
 
-- **CLI + GUI** — headless batch or visual interface
+- **CLI + GUI** — headless batch (`file-converter-cli`) or visual interface (`file-converter-gui`)
 - **10 built-in presets** — HandBrake-style quality tiers + GPU presets
-- **GPU acceleration** — Dedicated NVENC/AMD presets (global GPU override for CPU presets)
+- **GPU acceleration** — NVENC/AMD/QSV/VideoToolbox (dedicated presets + global GPU override)
 - **Concurrent encodes** — N parallel ffmpeg processes (configurable)
 - **Crash recovery** — queue persists to disk, resumes on restart
-- **Preset presets** — load/save custom presets as JSON
-- **Cross-platform** — Windows, macOS, Linux
+- **Cross-platform** — Windows, macOS, Linux (pure Rust, no CGO)
 
 ## Install
 
 ### Prerequisites
 
-- **ffmpeg** — [Download](https://ffmpeg.org/download.html) and add to PATH, or place binary in `ffmpeg/<os>-<arch>/` next to executable
-
-### Binaries
-
-Download from [Releases]() or build from source (see below).
+- **ffmpeg** — [Download](https://ffmpeg.org/download.html) and add to PATH
 
 ### Build from source
 
 ```bash
 git clone https://github.com/your-username/file_converter.git
 cd file_converter
-go build -o file_converter .
-```
 
-Requires Go 1.22+, gcc (CGO — Fyne dependency).
+# CLI (default binary)
+cargo build
+
+# GUI (egui/eframe)
+cargo build -p file-converter-gui
+```
 
 ## Usage
 
@@ -38,22 +36,22 @@ Requires Go 1.22+, gcc (CGO — Fyne dependency).
 
 ```bash
 # Convert single file
-file_converter input.mp4 --preset "Fast 1080p30"
+cargo run -- input.mp4 --preset "Fast 1080p30"
 
 # Convert multiple files
-file_converter *.mp4 --preset "H.265 1080p" --output ./converted
-
-# Specify output directory
-file_converter video.mp4 --preset "Very Fast 720p" --output ~/Videos
+cargo run -- *.mp4 --preset "H.265 1080p" --output ./converted
 
 # Use GPU encoding
-# Select a GPU-compatible preset in GUI or add HWAccel to custom preset
+cargo run -- video.mp4 --preset "NVENC 1080p"
+
+# Global GPU override for CPU presets
+cargo run -- input.mp4 --hwaccel nvenc
 
 # Queue mode (headless batch from JSON)
-echo '[{"InputPath":"a.mp4","PresetName":"Fast 1080p30"}]' | file_converter --queue
+echo '[{"input_path":"a.mp4","preset_name":"Fast 1080p30"}]' | cargo run -- --queue
 
 # Custom ffmpeg path
-file_converter input.mp4 --ffmpeg-path /usr/local/bin/ffmpeg
+cargo run -- input.mp4 --ffmpeg-path /usr/local/bin/ffmpeg
 ```
 
 ### Flags
@@ -63,16 +61,17 @@ file_converter input.mp4 --ffmpeg-path /usr/local/bin/ffmpeg
 | `--preset` | `Fast 1080p30` | Preset name |
 | `--output` | `./output` | Output directory |
 | `--ffmpeg-path` | `""` | ffmpeg binary path (auto-detect if empty) |
+| `--hwaccel` | `""` | Global GPU backend override |
 | `--concurrent` | `2` | Concurrent encode jobs |
 | `--queue` | `false` | Process queue JSON from stdin |
-| `--version` | `false` | Print version |
+| `--keep-format` | `false` | Keep original container extension |
+| `--bitrate` | `""` | Video bitrate (e.g. `2M`, overrides quality) |
 
 ### GUI
 
-Run without arguments:
-
 ```bash
-file_converter
+# Run the GUI binary
+cargo run -p file-converter-gui
 ```
 
 1. **Add Files** — click "Add Files" to select media files
@@ -80,12 +79,12 @@ file_converter
 3. **Start** — click "Start" to begin encoding
 4. **Monitor** — progress bars per job in queue pane
 
-Settings (File → Settings): ffmpeg path, output directory, default preset, theme, concurrent jobs.
+Settings: ffmpeg path, GPU backend, output directory, concurrent jobs.
 
 ## Presets
 
 | Name | Container | Video | Audio | Quality | Notes |
-|---|---|---|---|---|---|---|
+|---|---|---|---|---|---|
 | Fast 1080p30 | mp4 | H.264 | AAC | RF 22 | HandBrake Fast — good balance |
 | H.265 1080p | mkv | H.265 | AAC | RF 24 | Modern codec, ~50% smaller |
 | Super HQ 1080p | mp4 | H.264 | AAC | RF 18 | Near-lossless source |
@@ -97,7 +96,7 @@ Settings (File → Settings): ffmpeg path, output directory, default preset, the
 | NVENC H.265 1080p | mkv | H.265 | AAC | CQ 24 | GPU H.265, NVENC |
 | AMD 1080p | mp4 | H.264 | AAC | 23 | GPU-accelerated, AMF |
 
-**Global GPU override:** Set `--hwaccel` flag (CLI) or pick GPU Backend (Settings) to override CPU presets at runtime.
+**Global GPU override:** Set `--hwaccel` flag (CLI) or pick HW Accel (Settings) to override CPU presets at runtime.
 
 ## Configuration
 
@@ -110,7 +109,7 @@ Settings stored in platform config directory:
 ```json
 {
   "ffmpeg_path": "",
-  "theme": "system",
+  "hwaccel": "",
   "output_dir": "~/Videos",
   "default_preset": "Fast 1080p30",
   "concurrent_jobs": 2
@@ -123,36 +122,43 @@ Queue file (`queue.json`) lives in same directory for crash recovery.
 
 ```
 file_converter/
-├── main.go              # Entry — CLI vs GUI detect
-├── core/
-│   ├── types.go         # Preset, QueueItem, Progress structs
-│   ├── ffmpeg.go        # Binary resolution (bundled, PATH, user)
-│   ├── preset.go        # Default presets + load/save
-│   ├── convert.go       # Ffmpeg arg builder + progress parsing
-│   ├── queue.go         # Job queue with persistence
-│   ├── runner.go        # Ffmpeg execution with progress
-│   ├── worker.go        # Concurrent worker pool
-│   └── settings.go      # User settings save/load
-├── gui/
-│   ├── app.go           # Fyne window, menu, panel wiring
-│   ├── source_panel.go  # File picker + file list
-│   ├── preset_panel.go  # Preset selector + summary
-│   ├── queue_panel.go   # Job list + progress bars
-│   └── settings.go      # Settings form dialog
-└── ffmpeg/              # Bundled binaries (platform dirs)
+├── Cargo.toml              # Workspace root (core, cli, gui)
+├── core/                   # Library crate
+│   └── src/
+│       ├── types.rs        # Preset, QueueItem, Progress structs
+│       ├── ffmpeg.rs       # Binary resolution (PATH, user path)
+│       ├── preset.rs       # 10 HandBrake-style presets
+│       ├── convert.rs      # Ffmpeg arg builder + progress parsing
+│       ├── queue.rs        # Job queue with JSON persistence
+│       ├── runner.rs       # Ffmpeg execution with progress
+│       ├── worker.rs       # Concurrent worker pool (mpsc)
+│       └── config.rs       # User settings save/load
+├── cli/                    # CLI binary crate (clap)
+│   └── src/main.rs
+└── gui/                    # GUI binary crate (egui/eframe)
+    └── src/
+        ├── main.rs
+        ├── app.rs          # Eframe app, panel wiring
+        ├── source_panel.rs # File picker + file list
+        ├── preset_panel.rs # Preset selector
+        ├── queue_panel.rs  # Job list + progress bars
+        └── settings.rs     # Settings form dialog
 ```
 
 ## Development
 
 ```bash
 # Run tests
-go test ./core/ -v
+cargo test
 
-# Build
-go build -o file_converter .
+# Build all
+cargo build --workspace
 
-# Run
-./file_converter
+# CLI
+cargo run -- --help
+
+# GUI
+cargo run -p file-converter-gui
 ```
 
 ## License
