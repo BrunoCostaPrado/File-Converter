@@ -17,7 +17,10 @@ pub fn find_ffmpeg(user_path: &str) -> String {
 pub fn probe_bitrate(ffmpeg_path: &str, input: &str) -> Option<String> {
     let dir = Path::new(ffmpeg_path).parent()?;
     let stem = Path::new(ffmpeg_path).file_stem()?.to_str()?;
-    let probe_name = stem.replace("ffmpeg", "ffprobe");
+    let mut probe_name = stem.replace("ffmpeg", "ffprobe");
+    if cfg!(target_os = "windows") {
+        probe_name.push_str(".exe");
+    }
     let probe_path = dir.join(&probe_name);
     let probe = if probe_path.exists() {
         probe_path.to_string_lossy().to_string()
