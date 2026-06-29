@@ -7,7 +7,6 @@ static VIDEO_ENCODERS: LazyLock<Vec<(&str, &str)>> = LazyLock::new(|| {
         ("h264", "libx264"),
         ("h265", "libx265"),
         ("vp9", "libvpx-vp9"),
-        ("copy", "copy"),
     ]
 });
 
@@ -21,8 +20,14 @@ static HW_ENCODERS: LazyLock<Vec<(&str, Vec<(&str, &str)>)>> = LazyLock::new(|| 
 });
 
 // ponytail: each HW backend uses a different constant-quality flag
+// videotoolbox -quality range is 1-100 (higher=better), not 0-51 like CRF.
 static HW_QUALITY_FLAGS: LazyLock<Vec<(&str, &str)>> = LazyLock::new(|| {
-    vec![("nvenc", "-cq"), ("qsv", "-global_quality"), ("amd", "-quality")]
+    vec![
+        ("nvenc", "-cq"),
+        ("qsv", "-global_quality"),
+        ("amd", "-quality"),
+        ("videotoolbox", "-quality"),
+    ]
 });
 
 pub fn encoder_name(hwaccel: &str, codec: &str) -> String {
@@ -105,8 +110,9 @@ pub fn parse_progress_line(line: &str) -> Option<f64> {
     let hours: f64 = caps[1].parse().ok()?;
     let minutes: f64 = caps[2].parse().ok()?;
     let seconds: f64 = caps[3].parse().ok()?;
-    let centisecs: f64 = caps[4].parse().ok()?;
-    Some(hours * 3600.0 + minutes * 60.0 + seconds + centisecs / 100.0)
+    let frac: f64 = caps[4].parse().ok()?;
+    let divisor = 10.0_f64.powi(caps[4].len() as i32);
+    Some(hours * 3600.0 + minutes * 60.0 + seconds + frac / divisor)
 }
 
 #[cfg(test)]
