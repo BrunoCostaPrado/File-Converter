@@ -107,10 +107,8 @@ pub fn default_presets() -> Vec<Preset> {
 
 pub fn find_preset(name: &str) -> Preset {
     let presets = default_presets();
-    presets.into_iter().find(|p| p.name == name).unwrap_or_else(|| {
-        let mut p = default_presets();
-        p.remove(0)
-    })
+    presets.iter().find(|p| p.name == name).cloned()
+        .unwrap_or_else(|| presets[0].clone())
 }
 
 #[cfg(test)]
