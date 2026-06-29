@@ -16,6 +16,7 @@ pub fn run_transcode(
     let args = build_ffmpeg_args(input, output, preset, bitrate);
     let mut child = Command::new(ffmpeg_path)
         .args(&args)
+        .stdout(Stdio::null())
         .stderr(Stdio::piped())
         .spawn()
         .map_err(|e| format!("failed to spawn ffmpeg: {e}"))?;
@@ -30,10 +31,10 @@ pub fn run_transcode(
         if last_lines.len() > 5 {
             last_lines.remove(0);
         }
-        if parse_progress_line(&line).is_some() {
+        if let Some(secs) = parse_progress_line(&line) {
             on_progress(Progress {
                 file: input.to_string(),
-                percent: 0.0,
+                percent: secs,
                 status: "running".into(),
             });
         }
