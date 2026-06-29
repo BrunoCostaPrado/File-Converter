@@ -8,3 +8,4 @@ file-converter-core = { path = "../core" }
 egui = "0.27"
 eframe = "0.27"
 rfd = "0.14"
+dirs = "5"
