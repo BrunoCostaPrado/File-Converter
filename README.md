@@ -1,12 +1,12 @@
 # File Converter
 
-Video/audio converter built with Go and Fyne, powered by ffmpeg. CLI + GUI. Like Handbrake, lighter.
+Video/audio converter built with Go + Fyne, powered by ffmpeg. CLI + GUI. Like Handbrake, lighter.
 
 ## Features
 
-- **CLI + GUI** — headless batch processing or visual interface
-- **6 built-in presets** — Fast 1080p, Small 720p, H265 Compact, Lossless, Audio Only, Copy Stream
-- **GPU acceleration** — NVENC, QSV, AMD AMF, VideoToolbox (toggle per preset)
+- **CLI + GUI** — headless batch or visual interface
+- **10 built-in presets** — HandBrake-style quality tiers + GPU presets
+- **GPU acceleration** — Dedicated NVENC/AMD presets (global GPU override for CPU presets)
 - **Concurrent encodes** — N parallel ffmpeg processes (configurable)
 - **Crash recovery** — queue persists to disk, resumes on restart
 - **Preset presets** — load/save custom presets as JSON
@@ -16,7 +16,7 @@ Video/audio converter built with Go and Fyne, powered by ffmpeg. CLI + GUI. Like
 
 ### Prerequisites
 
-- **ffmpeg** — [Download](https://ffmpeg.org/download.html) and add to PATH, or place binary in `ffmpeg/<os>-<arch>/` next to the executable
+- **ffmpeg** — [Download](https://ffmpeg.org/download.html) and add to PATH, or place binary in `ffmpeg/<os>-<arch>/` next to executable
 
 ### Binaries
 
@@ -38,19 +38,19 @@ Requires Go 1.22+, gcc (CGO — Fyne dependency).
 
 ```bash
 # Convert single file
-file_converter input.mp4 --preset "Fast 1080p"
+file_converter input.mp4 --preset "Fast 1080p30"
 
 # Convert multiple files
-file_converter *.mp4 --preset "H265 Compact" --output ./converted
+file_converter *.mp4 --preset "H.265 1080p" --output ./converted
 
 # Specify output directory
-file_converter video.mp4 --preset "Small 720p" --output ~/Videos
+file_converter video.mp4 --preset "Very Fast 720p" --output ~/Videos
 
 # Use GPU encoding
 # Select a GPU-compatible preset in GUI or add HWAccel to custom preset
 
 # Queue mode (headless batch from JSON)
-echo '[{"InputPath":"a.mp4","PresetName":"Fast 1080p"}]' | file_converter --queue
+echo '[{"InputPath":"a.mp4","PresetName":"Fast 1080p30"}]' | file_converter --queue
 
 # Custom ffmpeg path
 file_converter input.mp4 --ffmpeg-path /usr/local/bin/ffmpeg
@@ -60,7 +60,7 @@ file_converter input.mp4 --ffmpeg-path /usr/local/bin/ffmpeg
 
 | Flag | Default | Description |
 |---|---|---|
-| `--preset` | `Fast 1080p` | Preset name |
+| `--preset` | `Fast 1080p30` | Preset name |
 | `--output` | `./output` | Output directory |
 | `--ffmpeg-path` | `""` | ffmpeg binary path (auto-detect if empty) |
 | `--concurrent` | `2` | Concurrent encode jobs |
@@ -76,24 +76,28 @@ file_converter
 ```
 
 1. **Add Files** — click "Add Files" to select media files
-2. **Select Preset** — pick from dropdown (Fast 1080p, Small 720p, etc.)
+2. **Select Preset** — pick from dropdown (Fast 1080p30, H.265 1080p, NVENC 1080p, etc.)
 3. **Start** — click "Start" to begin encoding
-4. **Monitor** — progress bars per job in the queue pane
+4. **Monitor** — progress bars per job in queue pane
 
 Settings (File → Settings): ffmpeg path, output directory, default preset, theme, concurrent jobs.
 
 ## Presets
 
 | Name | Container | Video | Audio | Quality | Notes |
-|---|---|---|---|---|---|
-| Fast 1080p | mp4 | H.264 | AAC | CRF 23 | Good balance size/quality |
-| Small 720p | mp4 | H.264 | AAC | CRF 28 | Smaller file, 720p |
-| H265 Compact | mkv | H.265 | AAC | CRF 28 | ~50% smaller than H.264 |
-| Lossless | mkv | H.264 | copy | CRF 0 | Visually lossless |
-| Audio Only | m4a | copy | AAC | 192k | Strip video, transcode audio |
-| Copy Stream | mkv | copy | copy | — | Remux, no re-encode |
+|---|---|---|---|---|---|---|
+| Fast 1080p30 | mp4 | H.264 | AAC | RF 22 | HandBrake Fast — good balance |
+| H.265 1080p | mkv | H.265 | AAC | RF 24 | Modern codec, ~50% smaller |
+| Super HQ 1080p | mp4 | H.264 | AAC | RF 18 | Near-lossless source |
+| Very Fast 720p | mp4 | H.264 | AAC | RF 22 | Quick encode, 720p target |
+| Lossless | mkv | H.264 | copy | RF 0 | Visually lossless |
+| Audio Only | m4a | copy | AAC | 192k | Strip video |
+| Copy Stream | mkv | copy | copy | — | Remux only |
+| NVENC 1080p | mp4 | H.264 | AAC | CQ 23 | GPU-accelerated, NVENC |
+| NVENC H.265 1080p | mkv | H.265 | AAC | CQ 24 | GPU H.265, NVENC |
+| AMD 1080p | mp4 | H.264 | AAC | 23 | GPU-accelerated, AMF |
 
-**GPU override:** All video presets support hardware encoding. Set `HWAccel` to `nvenc`, `qsv`, `amd`, or `videotoolbox` in custom presets.
+**Global GPU override:** Set `--hwaccel` flag (CLI) or pick GPU Backend (Settings) to override CPU presets at runtime.
 
 ## Configuration
 
@@ -108,12 +112,12 @@ Settings stored in platform config directory:
   "ffmpeg_path": "",
   "theme": "system",
   "output_dir": "~/Videos",
-  "default_preset": "Fast 1080p",
+  "default_preset": "Fast 1080p30",
   "concurrent_jobs": 2
 }
 ```
 
-Queue file (`queue.json`) lives in the same directory for crash recovery.
+Queue file (`queue.json`) lives in same directory for crash recovery.
 
 ## Project Structure
 

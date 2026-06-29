@@ -1382,6 +1382,7 @@ dependencies = [
 name = "file-converter-gui"
 version = "0.1.0"
 dependencies = [
+ "dirs",
  "eframe",
  "egui",
  "file-converter-core",

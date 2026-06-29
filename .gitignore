@@ -2,11 +2,16 @@
 .understand-anything
 .opencode
 docs
+build/
 file_converter.exe
 file_converter
 test_out
 output
+target
 *.exe
 *.test
 *.mp4
 *.mkv
+graphify-out/
+AGENTS.md
+build.ps1
